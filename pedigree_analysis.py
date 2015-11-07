@@ -1,6 +1,6 @@
 #!/tools/bin/python
 """
-The pedigree_analysis/candidate script is an annotation script that annotates individual variant at a position in a pedigree.
+The pedigree_analysis/candidate script is an annotation script that annotates individual variants at a position in a pedigree.
 The current annotation sources include Kaviar,CADD,CMS,UCSC_known_genes,Clinvar and SNPeff(Whenever it is loaded), these annotations 
 are pulled from the impala system by querying appropriate database tables.
 The candidate script also annotates a variant with a stress score, which is obtained by processing the target inheritance pattern 
@@ -235,9 +235,9 @@ print("chromosome\tposition\treference\tallele\tcandidate_stress\tmax_score\tmin
 ## All positions that are homozygous reference [ALT=.] are skipped here.
 ## Every line is then passed onto the process_genotype function to get information 
 ## about sample specific genotypes and quality scores.
-## Next the script calls the compute_sequence_quality_score_statistics function the get 
-## maximum,minimum and average scores. In the further steps unique allele's at every position
-## is annotated with kaviar,UCSC_known_gene,CMS,Clinvar,CADD and segregation score/stress scores
+## Next the script calls the compute_sequence_quality_score_statistics function to get 
+## maximum,minimum and average scores. In the further steps unique alleles at every position
+## are annotated with kaviar,UCSC_known_gene,CMS,Clinvar,CADD and segregation score/stress scores
 ## Individual variants with their annotations are printed into tab separated file
 
 snpeff=Vividict()
