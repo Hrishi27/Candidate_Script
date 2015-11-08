@@ -8,7 +8,7 @@ and the observed pattern w.r.t to a allele. (Segregation class)
 The script currently uses mergedVCF as an input, but in future certain changes will be made to get VCF information from impala.
 -----------------------------------------------------------------------------------------------------------------------------------
 
-Usage: python pedigree_analysis.py -config input.config -input Test.vcf -output results.txt
+Usage: python pedigree_analysis.py -i <INPUTVCF> -o <OUTFILE> -c <CONFIG>
 
 Note: The input.config file allows user to control the target inheritance pattern and various annotation cutoff's.
 
@@ -98,9 +98,9 @@ def quality_score_adjustment(max_score):
     return return_value
 
 
-def snphash():
+def snphash(file):
     hash=Vividict()
-    fo = open("snpeff103.ann.vcf", "r")
+    fo = open(file, "r")
     for line in fo:
         line = line.rstrip('\n')
         line = line.strip()
@@ -151,7 +151,7 @@ def process_genotype(records):
         else:
             genotype_array=re.split('/',key.data.GT)
             if len(genotype_array) == 1:     ## In this case GT just provides information about single allele. eg GT:GQX:DP:DPF:GQ:AD     0:17:19:11:.:. such positions are skipped. 
-                logging.error("skipping" + ' ' + chromosome + ' ' + str(position) +  '' + "due to inconsistent GT representation" + key.data)
+                logging.error("skipping" + ' ' + chromosome + ' ' + str(position) +  '' + "due to inconsistent GT representation")
                 checker=1
             for genotype in genotype_array:
                 genotype=int(genotype)
@@ -176,7 +176,8 @@ def process_genotype(records):
 
 configfile= ''
 inputfile = ''
-outputfile = ' '
+outputfile = ''
+snpeff_file=''
 
 try:
     opts, args = getopt.getopt(sys.argv[1:],"i:o:c:h:",["input=","output=","config=","help"])
@@ -198,8 +199,8 @@ for opt, arg in opts:
         sys.exit(2)
 
 
-if not (inputfile and configfile):
-    print ("Please provide required input and configfile")
+if not (inputfile and configfile and outputfile):
+    print ("Please provide required input,output and configfile")
     usage()
     sys.exit()
 
@@ -215,6 +216,9 @@ target_pattern=ConfigSectionMap("Inputs")["target"]
 stress_cutoff=ConfigSectionMap("Inputs")["stress_cutoff"]
 freq_cutoff=ConfigSectionMap("Inputs")["qaf_cutoff"]
 candidate_cutoff=ConfigSectionMap("Inputs")["score_cutoff"]
+snpeff_file=ConfigSectionMap("Inputs")["snpeff_file"]
+
+snpeff_file=snpeff_file.replace('"','')
 
 ### Creating objects for annotater and
 ## segregation classes
@@ -224,13 +228,10 @@ annotation_object = annotater()
 ## Reading input mergedVCF file
 vcf_Reader=vcf.Reader(open(inputfile),'r')
 
-#target = open(output_file, 'w')
+target = open(outputfile, 'w')
 
-#print (target.write("#Chromosome\tPosition\tReference\tAllele\tCanonical_vectors\tMin_quality\tAvg_quality\tMax_quality\tcandidate_boolean\tstress\tallele_count\tkaviar\tclinvar\tcadd\tcms\tgene\tSNP_eff\tCandidate_score"))
+target.write("#Chromosome\tPosition\tReference\tAllele\tcandidate_stress\tmax_score\tmin_score\tavg_score\tCount\tKaviar\tUCSC_gene\tclinvar\tcms_annotation\tcadd_annotation\tsnpeff_annotation\tcandidate_score\n")
 
-
-
-print("chromosome\tposition\treference\tallele\tcandidate_stress\tmax_score\tmin_score\tavg_score\tallele_count\tkaviar\tgene_annotation\tclinvar\tcms_annotation\tcandidate_score")
 ## The following reads the mergedVCF using python's VCF tools
 ## All positions that are homozygous reference [ALT=.] are skipped here.
 ## Every line is then passed onto the process_genotype function to get information 
@@ -241,8 +242,8 @@ print("chromosome\tposition\treference\tallele\tcandidate_stress\tmax_score\tmin
 ## Individual variants with their annotations are printed into tab separated file
 
 snpeff=Vividict()
-snpeff=snphash()
-
+snpeff=snphash(snpeff_file)
+chr_check={}
 for records in vcf_Reader:
     if records.ALT[0] is None:
         continue
@@ -252,6 +253,11 @@ for records in vcf_Reader:
     chromosome=chromosome.replace("chr","")
     alt=records.ALT
     data_hash=process_genotype(records)
+    
+    if not chromosome in chr_check:
+        print ("Working on chromosome" + chromosome)
+        chr_check[chromosome]=1
+    
     if data_hash==0:
         continue
     else:
@@ -320,19 +326,7 @@ for records in vcf_Reader:
                 cadd_annotation=str(cadd_phred[maximum])
             else:
                 cadd_annotation=cadd_phred[candidate]
-            print (chromosome,position,reference,candidate,candidate_stress,max_score,min_score,avg_score,allele_count[candidate],kaviar,gene_annotation,clinvar,cms_annotation,cadd_annotation,snpeff_annotation,1,sep="\t")
-
-
-
-
-
-
-
-
-
-
-
-
+            target.write (str(chromosome) + "\t" + str(position) + "\t" + str(reference) + "\t" + str(candidate) + "\t" + str(candidate_stress) + "\t" + str(max_score) + "\t" + str(min_score) + "\t" + str(avg_score) +"\t"+ str(allele_count[candidate]) + "\t" + str(kaviar) + "\t" + str(gene_annotation) + "\t" + str(clinvar) + "\t" + str(cms_annotation) + "\t" +str(cadd_annotation) + "\t" + str(snpeff_annotation) + "\t" + '1' +"\n")
 
 
 
